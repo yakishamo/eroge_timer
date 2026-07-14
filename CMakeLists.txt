@@ -7,6 +7,7 @@ add_executable(eroge_timer WIN32
     src/main.c
     src/overlay.c
     src/settings_dialog.c
+    src/settings_store.c
     src/tray.c
 )
 

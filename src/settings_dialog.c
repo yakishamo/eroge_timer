@@ -1,6 +1,7 @@
 #include "settings_dialog.h"
 
 #include "overlay.h"
+#include "settings_store.h"
 
 #define CONTROL_SIZE_SMALL 2001
 #define CONTROL_SIZE_MEDIUM 2002
@@ -185,6 +186,10 @@ static LRESULT CALLBACK settings_window_proc(HWND hwnd, UINT message,
             HWND owner = GetWindow(hwnd, GW_OWNER);
             read_settings(hwnd, settings);
             overlay_apply_settings(owner, settings);
+            if (!settings_store_save(settings)) {
+                MessageBoxW(hwnd, L"設定を保存できませんでした。",
+                            L"Eroge Timer", MB_OK | MB_ICONWARNING);
+            }
             DestroyWindow(hwnd);
             return 0;
         }

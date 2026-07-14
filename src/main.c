@@ -3,6 +3,7 @@
 #include "app_settings.h"
 #include "overlay.h"
 #include "settings_dialog.h"
+#include "settings_store.h"
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previous_instance,
                     PWSTR command_line, int show_command)
@@ -22,6 +23,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previous_instance,
 
     AppSettings settings;
     app_settings_init(&settings);
+    settings_store_load(&settings);
     if (overlay_create(instance, &settings) == NULL) {
         MessageBoxW(NULL, L"時計ウィンドウを作成できませんでした。",
                     L"Eroge Timer", MB_ICONERROR);
