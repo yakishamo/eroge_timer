@@ -9,6 +9,7 @@ void app_settings_init(AppSettings *settings)
     settings->display = CLOCK_DISPLAY_TIME_SECONDS;
     settings->outline = TRUE;
     settings->shadow = TRUE;
+    settings->render_resolution = RENDER_RESOLUTION_NATIVE;
     wcsncpy(settings->font, L"Segoe UI", LF_FACESIZE);
     settings->font[LF_FACESIZE - 1] = L'\0';
 }
@@ -52,4 +53,22 @@ void app_settings_format_clock(const AppSettings *settings,
                  time->wHour, time->wMinute, time->wSecond);
         break;
     }
+}
+
+BOOL app_settings_render_size(const AppSettings *settings,
+                              int *width, int *height)
+{
+    static const int widths[] = {
+        0, 640, 800, 1024, 1280, 1280, 1366, 1600, 1920
+    };
+    static const int heights[] = {
+        0, 480, 600, 768, 720, 800, 768, 900, 1080
+    };
+    if (settings->render_resolution <= RENDER_RESOLUTION_NATIVE ||
+        settings->render_resolution >= RENDER_RESOLUTION_COUNT) {
+        return FALSE;
+    }
+    *width = widths[settings->render_resolution];
+    *height = heights[settings->render_resolution];
+    return TRUE;
 }

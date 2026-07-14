@@ -14,6 +14,7 @@
 #define CONTROL_DISPLAY 2022
 #define CONTROL_OUTLINE 2023
 #define CONTROL_SHADOW 2024
+#define CONTROL_RENDER_RESOLUTION 2025
 
 static const wchar_t SETTINGS_CLASS_NAME[] = L"ErogeTimerSettings";
 static HWND settings_window;
@@ -86,6 +87,25 @@ static void fill_display_list(HWND combo, const AppSettings *settings)
     SendMessageW(combo, CB_SETCURSEL, settings->display, 0);
 }
 
+static void fill_resolution_list(HWND combo, const AppSettings *settings)
+{
+    static const wchar_t *items[] = {
+        L"ネイティブ（低解像度化なし）",
+        L"640 x 480",
+        L"800 x 600",
+        L"1024 x 768",
+        L"1280 x 720",
+        L"1280 x 800",
+        L"1366 x 768",
+        L"1600 x 900",
+        L"1920 x 1080"
+    };
+    for (int i = 0; i < RENDER_RESOLUTION_COUNT; ++i) {
+        SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)items[i]);
+    }
+    SendMessageW(combo, CB_SETCURSEL, settings->render_resolution, 0);
+}
+
 static void create_settings_controls(HWND hwnd, const AppSettings *settings)
 {
     create_control(hwnd, L"BUTTON", L"サイズ", BS_GROUPBOX, 16, 12, 282, 82, 0);
@@ -135,10 +155,20 @@ static void create_settings_controls(HWND hwnd, const AppSettings *settings)
     CheckDlgButton(hwnd, CONTROL_SHADOW,
                    settings->shadow ? BST_CHECKED : BST_UNCHECKED);
 
+    create_control(hwnd, L"BUTTON", L"ゲーム解像度", BS_GROUPBOX,
+                   16, 468, 282, 70, 0);
+    HWND resolution_combo = create_control(
+        hwnd, L"COMBOBOX", L"",
+        CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP,
+        32, 492, 250, 200, CONTROL_RENDER_RESOLUTION);
+    if (resolution_combo != NULL) {
+        fill_resolution_list(resolution_combo, settings);
+    }
+
     create_control(hwnd, L"BUTTON", L"OK", BS_DEFPUSHBUTTON,
-                   132, 470, 78, 28, IDOK);
+                   132, 554, 78, 28, IDOK);
     create_control(hwnd, L"BUTTON", L"キャンセル", BS_PUSHBUTTON,
-                   220, 470, 78, 28, IDCANCEL);
+                   220, 554, 78, 28, IDCANCEL);
 
     CheckRadioButton(hwnd, CONTROL_SIZE_SMALL, CONTROL_SIZE_LARGE,
                      CONTROL_SIZE_SMALL + settings->size);
@@ -181,6 +211,13 @@ static void read_settings(HWND hwnd, AppSettings *settings)
     }
     settings->outline = IsDlgButtonChecked(hwnd, CONTROL_OUTLINE) == BST_CHECKED;
     settings->shadow = IsDlgButtonChecked(hwnd, CONTROL_SHADOW) == BST_CHECKED;
+    HWND resolution_combo = GetDlgItem(hwnd, CONTROL_RENDER_RESOLUTION);
+    LRESULT selected_resolution = SendMessageW(
+        resolution_combo, CB_GETCURSEL, 0, 0);
+    if (selected_resolution >= 0 &&
+        selected_resolution < RENDER_RESOLUTION_COUNT) {
+        settings->render_resolution = (RenderResolution)selected_resolution;
+    }
 }
 
 static LRESULT CALLBACK settings_window_proc(HWND hwnd, UINT message,
@@ -249,7 +286,7 @@ void settings_dialog_show(HWND owner, AppSettings *settings)
     settings_window = CreateWindowExW(
         WS_EX_DLGMODALFRAME, SETTINGS_CLASS_NAME, L"Eroge Timer 設定",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, 330, 555,
+        CW_USEDEFAULT, CW_USEDEFAULT, 330, 640,
         owner, NULL, instance, settings);
 
     if (settings_window != NULL) {

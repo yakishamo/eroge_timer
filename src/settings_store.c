@@ -55,6 +55,9 @@ BOOL settings_store_load(AppSettings *settings)
         path, L"Outline", settings->outline, FALSE, TRUE);
     settings->shadow = read_bounded_int(
         path, L"Shadow", settings->shadow, FALSE, TRUE);
+    settings->render_resolution = (RenderResolution)read_bounded_int(
+        path, L"RenderResolution", settings->render_resolution,
+        RENDER_RESOLUTION_NATIVE, RENDER_RESOLUTION_COUNT - 1);
     wchar_t default_font[LF_FACESIZE];
     wcsncpy(default_font, settings->font, LF_FACESIZE);
     default_font[LF_FACESIZE - 1] = L'\0';
@@ -84,6 +87,8 @@ BOOL settings_store_save(const AppSettings *settings)
     success = write_int(path, L"Display", settings->display) && success;
     success = write_int(path, L"Outline", settings->outline) && success;
     success = write_int(path, L"Shadow", settings->shadow) && success;
+    success = write_int(path, L"RenderResolution",
+                        settings->render_resolution) && success;
     success = WritePrivateProfileStringW(
         L"Clock", L"Font", settings->font, path) && success;
     return success;
