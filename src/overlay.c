@@ -54,10 +54,55 @@ static AppSettings *get_settings(HWND hwnd)
     return (AppSettings *)GetWindowLongPtrW(hwnd, GWLP_USERDATA);
 }
 
+static HFONT create_clock_font(const AppSettings *settings)
+{
+    return CreateFontW(
+        app_settings_font_height(settings), 0, 0, 0, FW_BOLD,
+        FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE, settings->font);
+}
+
+static void measure_clock(const AppSettings *settings, int *width, int *height)
+{
+    const int horizontal_padding = 32;
+    const int vertical_padding = 16;
+    *width = 260;
+    *height = 72;
+
+    HDC dc = GetDC(NULL);
+    HFONT font = create_clock_font(settings);
+    if (dc == NULL || font == NULL) {
+        if (font != NULL) {
+            DeleteObject(font);
+        }
+        if (dc != NULL) {
+            ReleaseDC(NULL, dc);
+        }
+        return;
+    }
+
+    SYSTEMTIME time;
+    wchar_t text[64];
+    SIZE text_size;
+    GetLocalTime(&time);
+    app_settings_format_clock(settings, &time, text, ARRAYSIZE(text));
+
+    HGDIOBJ old_font = SelectObject(dc, font);
+    if (GetTextExtentPoint32W(dc, text, (int)wcslen(text), &text_size)) {
+        *width = text_size.cx + horizontal_padding;
+        *height = text_size.cy + vertical_padding;
+    }
+    SelectObject(dc, old_font);
+    DeleteObject(font);
+    ReleaseDC(NULL, dc);
+}
+
 void overlay_apply_settings(HWND hwnd, const AppSettings *settings)
 {
-    int width = app_settings_clock_width(settings);
-    int height = app_settings_clock_height(settings);
+    int width;
+    int height;
+    measure_clock(settings, &width, &height);
     HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
     MONITORINFO monitor_info = {0};
     monitor_info.cbSize = sizeof(monitor_info);
@@ -106,17 +151,15 @@ static void paint_clock(HWND hwnd)
     GetLocalTime(&time);
     app_settings_format_clock(settings, &time, text, ARRAYSIZE(text));
 
-    HFONT font = CreateFontW(
-        app_settings_font_height(settings), 0, 0, 0, FW_BOLD,
-        FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
-        DEFAULT_PITCH | FF_DONTCARE, settings->font);
-    HGDIOBJ old_font = SelectObject(dc, font);
+    HFONT font = create_clock_font(settings);
+    HGDIOBJ old_font = font != NULL ? SelectObject(dc, font) : NULL;
     SetBkMode(dc, TRANSPARENT);
     SetTextColor(dc, RGB(255, 255, 255));
     DrawTextW(dc, text, -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-    SelectObject(dc, old_font);
-    DeleteObject(font);
+    if (font != NULL) {
+        SelectObject(dc, old_font);
+        DeleteObject(font);
+    }
     EndPaint(hwnd, &paint);
 }
 
@@ -210,8 +253,7 @@ HWND overlay_create(HINSTANCE instance, AppSettings *settings)
                            WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW;
     HWND hwnd = CreateWindowExW(
         extended_style, WINDOW_CLASS_NAME, L"Eroge Timer", WS_POPUP,
-        32, 32, app_settings_clock_width(settings),
-        app_settings_clock_height(settings),
+        32, 32, 1, 1,
         NULL, NULL, instance, settings);
     if (hwnd != NULL) {
         overlay_window = hwnd;

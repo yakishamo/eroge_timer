@@ -34,8 +34,6 @@ typedef struct {
 } AppSettings;
 
 void app_settings_init(AppSettings *settings);
-int app_settings_clock_width(const AppSettings *settings);
-int app_settings_clock_height(const AppSettings *settings);
 int app_settings_font_height(const AppSettings *settings);
 void app_settings_format_clock(const AppSettings *settings,
                                const SYSTEMTIME *time,

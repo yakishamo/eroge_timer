@@ -11,19 +11,6 @@ void app_settings_init(AppSettings *settings)
     settings->font[LF_FACESIZE - 1] = L'\0';
 }
 
-int app_settings_clock_width(const AppSettings *settings)
-{
-    static const int widths[] = {190, 260, 270, 350, 430};
-    static const int scale_percent[] = {75, 100, 130};
-    return widths[settings->display] * scale_percent[settings->size] / 100;
-}
-
-int app_settings_clock_height(const AppSettings *settings)
-{
-    static const int heights[] = {54, 72, 94};
-    return heights[settings->size];
-}
-
 int app_settings_font_height(const AppSettings *settings)
 {
     static const int heights[] = {-30, -42, -56};
