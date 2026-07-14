@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "clock_renderer.h"
+#include "resource.h"
 #include "settings_dialog.h"
 #include "tray.h"
 
@@ -172,6 +173,8 @@ BOOL overlay_register_class(HINSTANCE instance)
     window_class.lpfnWndProc = window_proc;
     window_class.hInstance = instance;
     window_class.hCursor = LoadCursorW(NULL, IDC_ARROW);
+    window_class.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(IDI_APP_ICON));
+    window_class.hIconSm = window_class.hIcon;
     window_class.lpszClassName = WINDOW_CLASS_NAME;
     return RegisterClassExW(&window_class) != 0;
 }

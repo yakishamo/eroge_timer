@@ -2,6 +2,8 @@
 
 #include <shellapi.h>
 
+#include "resource.h"
+
 #define TRAY_ICON_ID 1
 
 static NOTIFYICONDATAW tray_icon;
@@ -36,7 +38,8 @@ BOOL tray_add(HWND owner)
     tray_icon.uID = TRAY_ICON_ID;
     tray_icon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     tray_icon.uCallbackMessage = TRAY_CALLBACK_MESSAGE;
-    tray_icon.hIcon = LoadIconW(NULL, IDI_APPLICATION);
+    HINSTANCE instance = (HINSTANCE)GetWindowLongPtrW(owner, GWLP_HINSTANCE);
+    tray_icon.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(IDI_APP_ICON));
     lstrcpynW(tray_icon.szTip, L"Eroge Timer", ARRAYSIZE(tray_icon.szTip));
     return Shell_NotifyIconW(NIM_ADD, &tray_icon);
 }

@@ -1,6 +1,8 @@
 /build/
 /build-*/
+/_CPack_Packages/
 /.cache/
 *.exe
 *.obj
 *.o
+*.pdb

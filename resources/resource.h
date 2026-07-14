@@ -1,0 +1,6 @@
+#ifndef EROGE_TIMER_RESOURCE_H
+#define EROGE_TIMER_RESOURCE_H
+
+#define IDI_APP_ICON 101
+
+#endif

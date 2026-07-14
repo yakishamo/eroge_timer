@@ -1,8 +1,45 @@
 # Eroge Timer
 
+![Eroge Timer icon](assets/app-icon.png)
+
 ゲームの手前に表示する、C言語およびWin32 API製の時計オーバーレイです。
 
-## 必要なもの
+## ダウンロード
+
+GitHub Releasesから最新の`eroge_timer-v1.0.0-windows-x64.zip`をダウンロードし、任意のフォルダーへ展開してください。インストールは不要です。
+
+## 対応環境
+
+- Windows 10/11（64bit）
+- ボーダーレス全画面またはウィンドウ表示のゲーム
+
+排他的フルスクリーンでは、時計がゲームより前面に表示されない場合があります。
+
+## 主な機能
+
+- クリックをゲームへ透過する常時最前面の時計
+- サイズ、位置、フォント、表示形式の変更
+- 日付、曜日、秒の表示
+- 輪郭線と影
+- 代表的なゲーム解像度に合わせた描画
+- 設定の自動保存
+- 時計または通知領域の右クリックメニュー
+
+## 使い方
+
+1. `eroge_timer.exe`を起動します。
+2. 時計または通知領域のアイコンを右クリックして設定します。
+3. 終了する場合は、右クリックメニューの「終了」を選択します。
+
+設定は `%APPDATA%\ErogeTimer\settings.ini` に保存され、次回起動時に復元されます。
+
+## 制限事項
+
+- 排他的フルスクリーンでの表示は保証されません。
+- アンチチートを使用するゲームでの動作は保証されません。
+- コード署名を行っていないため、Windowsから警告が表示される場合があります。
+
+## 開発環境
 
 - CMake 3.16以上
 - MinGW-w64 GCC（またはVisual StudioのMSVC）
@@ -16,14 +53,25 @@ cmake --build build
 
 生成物は `build/eroge_timer.exe` です。
 
-## 実行
+## 開発版の実行
 
 ```powershell
 .\build\eroge_timer.exe
 ```
 
-時計はクリック操作を背後のゲームへ透過します。通知領域のアイコンを右クリックすると、時計の表示切り替え、設定、アプリの終了ができます。設定画面では時計のサイズ（小・中・大）、表示位置（左上・右上・左下・右下）、Windowsにインストール済みのフォント、日付・曜日・秒を含む表示内容、輪郭線と影、ゲーム解像度に合わせた描画品質を変更できます。アイコンをダブルクリックしても表示を切り替えられます。
+## リリースパッケージの作成
 
-設定は `%APPDATA%\ErogeTimer\settings.ini` に保存され、次回起動時に復元されます。
+```powershell
+cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake --build build --clean-first
+Set-Location build
+cpack -G ZIP
+```
 
-ゲームは排他的フルスクリーンではなく、ボーダーレス全画面で実行してください。
+`build/eroge_timer-v1.0.0-windows-x64.zip`が生成されます。
+
+## ライセンス
+
+このソフトウェアは[MIT License](LICENSE)で公開されています。
+
+Copyright (c) 2026 yakishamo
