@@ -3,7 +3,11 @@ cmake_minimum_required(VERSION 3.16)
 project(eroge_timer VERSION 0.1.0 LANGUAGES C)
 
 add_executable(eroge_timer WIN32
+    src/app_settings.c
     src/main.c
+    src/overlay.c
+    src/settings_dialog.c
+    src/tray.c
 )
 
 target_compile_features(eroge_timer PRIVATE c_std_11)
