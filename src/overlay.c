@@ -9,9 +9,45 @@
 #define TIMER_INTERVAL_MS 200
 #define TRANSPARENT_COLOR RGB(1, 2, 3)
 #define SCREEN_MARGIN 32
+#define OVERLAY_CONTEXT_MENU_MESSAGE (WM_APP + 2)
 
 static const wchar_t WINDOW_CLASS_NAME[] = L"ErogeTimerOverlay";
 static UINT taskbar_created_message;
+static HWND overlay_window;
+static HHOOK mouse_hook;
+static BOOL suppress_right_button_until_up;
+
+static LRESULT CALLBACK mouse_hook_proc(int code, WPARAM w_param, LPARAM l_param)
+{
+    if (code == HC_ACTION && overlay_window != NULL &&
+        IsWindowVisible(overlay_window) &&
+        (w_param == WM_RBUTTONDOWN || w_param == WM_RBUTTONUP)) {
+        const MSLLHOOKSTRUCT *mouse = (const MSLLHOOKSTRUCT *)l_param;
+        RECT clock_rect;
+        GetWindowRect(overlay_window, &clock_rect);
+
+        if (PtInRect(&clock_rect, mouse->pt)) {
+            if (suppress_right_button_until_up) {
+                if (w_param == WM_RBUTTONUP) {
+                    suppress_right_button_until_up = FALSE;
+                }
+                return 1;
+            }
+            if (tray_is_menu_open()) {
+                if (w_param == WM_RBUTTONDOWN) {
+                    suppress_right_button_until_up = TRUE;
+                    tray_cancel_menu();
+                }
+                return 1;
+            }
+            if (w_param == WM_RBUTTONUP) {
+                PostMessageW(overlay_window, OVERLAY_CONTEXT_MENU_MESSAGE, 0, 0);
+            }
+            return 1;
+        }
+    }
+    return CallNextHookEx(mouse_hook, code, w_param, l_param);
+}
 
 static AppSettings *get_settings(HWND hwnd)
 {
@@ -109,6 +145,9 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
             toggle_visibility(hwnd);
         }
         return 0;
+    case OVERLAY_CONTEXT_MENU_MESSAGE:
+        tray_show_menu(hwnd, IsWindowVisible(hwnd));
+        return 0;
     case WM_COMMAND:
         switch (LOWORD(w_param)) {
         case TRAY_COMMAND_TOGGLE_VISIBILITY:
@@ -140,6 +179,11 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
         return 0;
     case WM_DESTROY:
         KillTimer(hwnd, TIMER_ID);
+        if (mouse_hook != NULL) {
+            UnhookWindowsHookEx(mouse_hook);
+            mouse_hook = NULL;
+        }
+        overlay_window = NULL;
         tray_remove();
         PostQuitMessage(0);
         return 0;
@@ -170,6 +214,8 @@ HWND overlay_create(HINSTANCE instance, AppSettings *settings)
         app_settings_clock_height(settings),
         NULL, NULL, instance, settings);
     if (hwnd != NULL) {
+        overlay_window = hwnd;
+        mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, mouse_hook_proc, NULL, 0);
         overlay_apply_settings(hwnd, settings);
         ShowWindow(hwnd, SW_SHOWNOACTIVATE);
         SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,

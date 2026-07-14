@@ -14,5 +14,7 @@ enum TrayCommand {
 BOOL tray_add(HWND owner);
 void tray_remove(void);
 void tray_show_menu(HWND owner, BOOL clock_visible);
+BOOL tray_is_menu_open(void);
+void tray_cancel_menu(void);
 
 #endif

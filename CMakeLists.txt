@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(eroge_timer VERSION 0.1.0 LANGUAGES C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 add_executable(eroge_timer WIN32
     src/app_settings.c
     src/main.c

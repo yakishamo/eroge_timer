@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Eroge Timer (GDB)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/eroge_timer.exe",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "CMake: build Debug",
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:/gcc/mingw64/bin/gdb.exe",
+            "stopAtEntry": false,
+            "externalConsole": false
+        }
+    ]
+}
