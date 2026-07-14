@@ -12,6 +12,8 @@
 #define CONTROL_POSITION_BOTTOM_RIGHT 2014
 #define CONTROL_FONT 2021
 #define CONTROL_DISPLAY 2022
+#define CONTROL_OUTLINE 2023
+#define CONTROL_SHADOW 2024
 
 static const wchar_t SETTINGS_CLASS_NAME[] = L"ErogeTimerSettings";
 static HWND settings_window;
@@ -122,10 +124,21 @@ static void create_settings_controls(HWND hwnd, const AppSettings *settings)
         fill_display_list(display_combo, settings);
     }
 
+    create_control(hwnd, L"BUTTON", L"文字効果", BS_GROUPBOX,
+                   16, 394, 282, 62, 0);
+    create_control(hwnd, L"BUTTON", L"輪郭線", BS_AUTOCHECKBOX | WS_TABSTOP,
+                   32, 416, 100, 24, CONTROL_OUTLINE);
+    create_control(hwnd, L"BUTTON", L"影", BS_AUTOCHECKBOX | WS_TABSTOP,
+                   166, 416, 100, 24, CONTROL_SHADOW);
+    CheckDlgButton(hwnd, CONTROL_OUTLINE,
+                   settings->outline ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(hwnd, CONTROL_SHADOW,
+                   settings->shadow ? BST_CHECKED : BST_UNCHECKED);
+
     create_control(hwnd, L"BUTTON", L"OK", BS_DEFPUSHBUTTON,
-                   132, 398, 78, 28, IDOK);
+                   132, 470, 78, 28, IDOK);
     create_control(hwnd, L"BUTTON", L"キャンセル", BS_PUSHBUTTON,
-                   220, 398, 78, 28, IDCANCEL);
+                   220, 470, 78, 28, IDCANCEL);
 
     CheckRadioButton(hwnd, CONTROL_SIZE_SMALL, CONTROL_SIZE_LARGE,
                      CONTROL_SIZE_SMALL + settings->size);
@@ -166,6 +179,8 @@ static void read_settings(HWND hwnd, AppSettings *settings)
     if (selected_display >= 0 && selected_display < CLOCK_DISPLAY_COUNT) {
         settings->display = (ClockDisplay)selected_display;
     }
+    settings->outline = IsDlgButtonChecked(hwnd, CONTROL_OUTLINE) == BST_CHECKED;
+    settings->shadow = IsDlgButtonChecked(hwnd, CONTROL_SHADOW) == BST_CHECKED;
 }
 
 static LRESULT CALLBACK settings_window_proc(HWND hwnd, UINT message,
@@ -234,7 +249,7 @@ void settings_dialog_show(HWND owner, AppSettings *settings)
     settings_window = CreateWindowExW(
         WS_EX_DLGMODALFRAME, SETTINGS_CLASS_NAME, L"Eroge Timer 設定",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, 330, 480,
+        CW_USEDEFAULT, CW_USEDEFAULT, 330, 555,
         owner, NULL, instance, settings);
 
     if (settings_window != NULL) {

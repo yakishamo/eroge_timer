@@ -51,6 +51,10 @@ BOOL settings_store_load(AppSettings *settings)
     settings->display = (ClockDisplay)read_bounded_int(
         path, L"Display", settings->display,
         CLOCK_DISPLAY_TIME, CLOCK_DISPLAY_COUNT - 1);
+    settings->outline = read_bounded_int(
+        path, L"Outline", settings->outline, FALSE, TRUE);
+    settings->shadow = read_bounded_int(
+        path, L"Shadow", settings->shadow, FALSE, TRUE);
     wchar_t default_font[LF_FACESIZE];
     wcsncpy(default_font, settings->font, LF_FACESIZE);
     default_font[LF_FACESIZE - 1] = L'\0';
@@ -78,6 +82,8 @@ BOOL settings_store_save(const AppSettings *settings)
     success = write_int(path, L"Size", settings->size) && success;
     success = write_int(path, L"Position", settings->position) && success;
     success = write_int(path, L"Display", settings->display) && success;
+    success = write_int(path, L"Outline", settings->outline) && success;
+    success = write_int(path, L"Shadow", settings->shadow) && success;
     success = WritePrivateProfileStringW(
         L"Clock", L"Font", settings->font, path) && success;
     return success;

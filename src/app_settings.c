@@ -7,6 +7,8 @@ void app_settings_init(AppSettings *settings)
     settings->size = CLOCK_SIZE_MEDIUM;
     settings->position = CLOCK_POSITION_TOP_LEFT;
     settings->display = CLOCK_DISPLAY_TIME_SECONDS;
+    settings->outline = TRUE;
+    settings->shadow = TRUE;
     wcsncpy(settings->font, L"Segoe UI", LF_FACESIZE);
     settings->font[LF_FACESIZE - 1] = L'\0';
 }

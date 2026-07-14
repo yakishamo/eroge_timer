@@ -30,6 +30,8 @@ typedef struct {
     ClockSize size;
     ClockPosition position;
     ClockDisplay display;
+    BOOL outline;
+    BOOL shadow;
     wchar_t font[LF_FACESIZE];
 } AppSettings;
 

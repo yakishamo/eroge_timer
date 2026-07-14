@@ -6,6 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(eroge_timer WIN32
     src/app_settings.c
+    src/clock_renderer_gdi.c
     src/main.c
     src/overlay.c
     src/settings_dialog.c
