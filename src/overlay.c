@@ -75,6 +75,24 @@ static LRESULT CALLBACK mouse_hook_proc(int code, WPARAM w_param, LPARAM l_param
             return 1;
         }
     }
+    if (code == HC_ACTION && overlay_window != NULL &&
+        w_param == WM_RBUTTONUP) {
+        OverlayContext *context = (OverlayContext *)GetWindowLongPtrW(
+            overlay_window, GWLP_USERDATA);
+        if (context != NULL && context->play_time_tracker != NULL &&
+            context->play_time_tracker->config.toggle_clock_on_right_click &&
+            context->play_time_tracker->config.executable_path[0] != L'\0') {
+            wchar_t foreground_path[MAX_PATH];
+            if (play_time_get_foreground_executable(
+                    foreground_path, ARRAYSIZE(foreground_path)) &&
+                _wcsicmp(foreground_path,
+                         context->play_time_tracker->config.executable_path) == 0) {
+                PostMessageW(
+                    overlay_window, WM_COMMAND,
+                    MAKEWPARAM(TRAY_COMMAND_TOGGLE_VISIBILITY, 0), 0);
+            }
+        }
+    }
     return CallNextHookEx(mouse_hook, code, w_param, l_param);
 }
 
@@ -149,7 +167,8 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
             toggle_visibility(hwnd);
             return 0;
         case TRAY_COMMAND_SETTINGS:
-            settings_dialog_show(hwnd, context->settings);
+            settings_dialog_show(hwnd, context->settings,
+                                 context->play_time_tracker);
             return 0;
         case TRAY_COMMAND_PLAY_TIME:
             play_time_dialog_show(hwnd, context->play_time_tracker);

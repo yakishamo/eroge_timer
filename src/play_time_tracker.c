@@ -271,11 +271,14 @@ void play_time_tracker_init(PlayTimeTracker *tracker)
     ZeroMemory(tracker, sizeof(*tracker));
     tracker->active_record_index = NO_ACTIVE_RECORD;
     tracker->config.idle_timeout_seconds = DEFAULT_IDLE_TIMEOUT_SECONDS;
+    tracker->config.toggle_clock_on_right_click = TRUE;
     tracker->state = PLAY_TIME_DISABLED;
     wchar_t path[MAX_PATH];
     if (get_settings_path(path, ARRAYSIZE(path), FALSE)) {
         tracker->config.enabled = GetPrivateProfileIntW(
             L"PlayTime", L"Enabled", FALSE, path) != 0;
+        tracker->config.toggle_clock_on_right_click = GetPrivateProfileIntW(
+            L"PlayTime", L"ToggleClockOnRightClick", TRUE, path) != 0;
         tracker->config.idle_timeout_seconds = GetPrivateProfileIntW(
             L"PlayTime", L"IdleTimeoutSeconds",
             DEFAULT_IDLE_TIMEOUT_SECONDS, path);
@@ -339,6 +342,10 @@ BOOL play_time_tracker_save(PlayTimeTracker *tracker)
     swprintf(number, ARRAYSIZE(number), L"%d", tracker->config.enabled);
     success = WritePrivateProfileStringW(
         L"PlayTime", L"Enabled", number, path) && success;
+    swprintf(number, ARRAYSIZE(number), L"%d",
+             tracker->config.toggle_clock_on_right_click);
+    success = WritePrivateProfileStringW(
+        L"PlayTime", L"ToggleClockOnRightClick", number, path) && success;
     swprintf(number, ARRAYSIZE(number), L"%lu",
              (unsigned long)tracker->config.idle_timeout_seconds);
     success = WritePrivateProfileStringW(

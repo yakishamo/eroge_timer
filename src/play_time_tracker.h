@@ -12,6 +12,7 @@ typedef enum {
 
 typedef struct {
     BOOL enabled;
+    BOOL toggle_clock_on_right_click;
     wchar_t executable_path[MAX_PATH];
     DWORD idle_timeout_seconds;
 } PlayTimeConfig;

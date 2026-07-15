@@ -15,6 +15,7 @@
 #define CONTROL_RESET 3007
 #define CONTROL_HISTORY 3008
 #define CONTROL_EXPORT 3009
+#define CONTROL_TOGGLE_ON_RIGHT_CLICK 3010
 #define CAPTURE_TIMER_ID 1
 #define REFRESH_TIMER_ID 2
 #define EXPORT_COMPLETE_MESSAGE (WM_APP + 20)
@@ -159,6 +160,14 @@ static void create_controls(HWND hwnd, PlayTimeDialogContext *context)
                    20, 18, 250, 24, CONTROL_ENABLED);
     CheckDlgButton(hwnd, CONTROL_ENABLED,
                    context->draft.enabled ? BST_CHECKED : BST_UNCHECKED);
+    create_control(hwnd, L"BUTTON",
+                   L"ゲーム内の右クリックで時計表示を切り替える",
+                   BS_AUTOCHECKBOX | WS_TABSTOP,
+                   286, 18, 300, 24, CONTROL_TOGGLE_ON_RIGHT_CLICK);
+    CheckDlgButton(
+        hwnd, CONTROL_TOGGLE_ON_RIGHT_CLICK,
+        context->draft.toggle_clock_on_right_click
+            ? BST_CHECKED : BST_UNCHECKED);
 
     create_control(hwnd, L"BUTTON", L"対象ゲーム", BS_GROUPBOX,
                    16, 52, 570, 112, 0);
@@ -216,6 +225,8 @@ static BOOL read_config(HWND hwnd, PlayTimeConfig *config)
 {
     config->enabled = IsDlgButtonChecked(
         hwnd, CONTROL_ENABLED) == BST_CHECKED;
+    config->toggle_clock_on_right_click = IsDlgButtonChecked(
+        hwnd, CONTROL_TOGGLE_ON_RIGHT_CLICK) == BST_CHECKED;
     wchar_t timeout[16];
     GetDlgItemTextW(hwnd, CONTROL_IDLE_TIMEOUT,
                     timeout, ARRAYSIZE(timeout));

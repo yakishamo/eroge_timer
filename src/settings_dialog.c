@@ -17,9 +17,11 @@
 #define CONTROL_RENDER_RESOLUTION 2025
 #define CONTROL_TIME_FORMAT 2026
 #define CONTROL_TEXT_ALIGNMENT 2027
+#define CONTROL_TOGGLE_ON_RIGHT_CLICK 2028
 
 static const wchar_t SETTINGS_CLASS_NAME[] = L"ErogeTimerSettings";
 static HWND settings_window;
+static PlayTimeTracker *settings_play_time_tracker;
 
 static void set_control_font(HWND control)
 {
@@ -213,10 +215,23 @@ static void create_settings_controls(HWND hwnd, const AppSettings *settings)
         fill_resolution_list(resolution_combo, settings);
     }
 
+    create_control(hwnd, L"BUTTON", L"ゲーム操作", BS_GROUPBOX,
+                   16, 624, 282, 58, 0);
+    create_control(hwnd, L"BUTTON",
+                   L"右クリックで時計表示を切り替える",
+                   BS_AUTOCHECKBOX | WS_TABSTOP,
+                   32, 646, 246, 24, CONTROL_TOGGLE_ON_RIGHT_CLICK);
+    if (settings_play_time_tracker != NULL) {
+        CheckDlgButton(
+            hwnd, CONTROL_TOGGLE_ON_RIGHT_CLICK,
+            settings_play_time_tracker->config.toggle_clock_on_right_click
+                ? BST_CHECKED : BST_UNCHECKED);
+    }
+
     create_control(hwnd, L"BUTTON", L"OK", BS_DEFPUSHBUTTON,
-                   132, 628, 78, 28, IDOK);
+                   132, 698, 78, 28, IDOK);
     create_control(hwnd, L"BUTTON", L"キャンセル", BS_PUSHBUTTON,
-                   220, 628, 78, 28, IDCANCEL);
+                   220, 698, 78, 28, IDCANCEL);
 
     CheckRadioButton(hwnd, CONTROL_SIZE_SMALL, CONTROL_SIZE_LARGE,
                      CONTROL_SIZE_SMALL + settings->size);
@@ -314,6 +329,15 @@ static LRESULT CALLBACK settings_window_proc(HWND hwnd, UINT message,
                 MessageBoxW(hwnd, L"設定を保存できませんでした。",
                             L"Eroge Timer", MB_OK | MB_ICONWARNING);
             }
+            if (settings_play_time_tracker != NULL) {
+                PlayTimeConfig play_time_config =
+                    settings_play_time_tracker->config;
+                play_time_config.toggle_clock_on_right_click =
+                    IsDlgButtonChecked(
+                        hwnd, CONTROL_TOGGLE_ON_RIGHT_CLICK) == BST_CHECKED;
+                play_time_tracker_set_config(settings_play_time_tracker,
+                                             &play_time_config);
+            }
             DestroyWindow(hwnd);
             return 0;
         }
@@ -327,6 +351,7 @@ static LRESULT CALLBACK settings_window_proc(HWND hwnd, UINT message,
         return 0;
     case WM_DESTROY:
         settings_window = NULL;
+        settings_play_time_tracker = NULL;
         return 0;
     default:
         break;
@@ -346,7 +371,8 @@ BOOL settings_dialog_register_class(HINSTANCE instance)
     return RegisterClassExW(&window_class) != 0;
 }
 
-void settings_dialog_show(HWND owner, AppSettings *settings)
+void settings_dialog_show(HWND owner, AppSettings *settings,
+                          PlayTimeTracker *play_time_tracker)
 {
     if (settings_window != NULL) {
         ShowWindow(settings_window, SW_RESTORE);
@@ -355,14 +381,17 @@ void settings_dialog_show(HWND owner, AppSettings *settings)
     }
 
     HINSTANCE instance = (HINSTANCE)GetWindowLongPtrW(owner, GWLP_HINSTANCE);
+    settings_play_time_tracker = play_time_tracker;
     settings_window = CreateWindowExW(
         WS_EX_DLGMODALFRAME, SETTINGS_CLASS_NAME, L"Eroge Timer 設定",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, 330, 716,
+        CW_USEDEFAULT, CW_USEDEFAULT, 330, 786,
         owner, NULL, instance, settings);
 
     if (settings_window != NULL) {
         ShowWindow(settings_window, SW_SHOW);
         SetForegroundWindow(settings_window);
+    } else {
+        settings_play_time_tracker = NULL;
     }
 }
