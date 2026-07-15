@@ -6,7 +6,7 @@
 
 ## ダウンロード
 
-GitHub Releasesから最新の`eroge_timer-v1.0.0-windows-x64.zip`をダウンロードし、任意のフォルダーへ展開してください。インストールは不要です。
+GitHub Releasesから最新の`eroge_timer-v1.1.0-windows-x64.zip`をダウンロードし、任意のフォルダーへ展開してください。インストールは不要です。
 
 ## 対応環境
 
@@ -76,7 +76,7 @@ Set-Location build
 cpack -G ZIP
 ```
 
-`build/eroge_timer-v1.0.0-windows-x64.zip`が生成されます。
+`build/eroge_timer-v1.1.0-windows-x64.zip`が生成されます。
 
 ## ライセンス
 

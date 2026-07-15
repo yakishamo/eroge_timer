@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(eroge_timer VERSION 1.0.0 LANGUAGES C RC)
+project(eroge_timer VERSION 1.1.0 LANGUAGES C RC)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -41,7 +41,7 @@ install(FILES
     CHANGELOG.md
     LICENSE
     README.md
-    RELEASE_NOTES_v1.0.0.md
+    RELEASE_NOTES_v1.1.0.md
     DESTINATION .
 )
 install(FILES assets/app-icon.png DESTINATION assets)
