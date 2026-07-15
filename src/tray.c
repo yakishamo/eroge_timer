@@ -63,6 +63,7 @@ void tray_show_menu(HWND owner, BOOL clock_visible)
     AppendMenuW(menu, MF_STRING | (clock_visible ? MF_CHECKED : MF_UNCHECKED),
                 TRAY_COMMAND_TOGGLE_VISIBILITY, L"時計を表示");
     AppendMenuW(menu, MF_STRING, TRAY_COMMAND_SETTINGS, L"設定...");
+    AppendMenuW(menu, MF_STRING, TRAY_COMMAND_PLAY_TIME, L"プレイ時間計測...");
     AppendMenuW(menu, MF_SEPARATOR, 0, NULL);
     AppendMenuW(menu, MF_STRING, TRAY_COMMAND_EXIT, L"終了");
 

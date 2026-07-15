@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "clock_renderer.h"
+#include "play_time_dialog.h"
 #include "resource.h"
 #include "settings_dialog.h"
 #include "tray.h"
@@ -14,6 +15,7 @@
 
 typedef struct {
     AppSettings *settings;
+    PlayTimeTracker *play_time_tracker;
     ClockRenderer *renderer;
 } OverlayContext;
 
@@ -130,6 +132,9 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
         case TRAY_COMMAND_SETTINGS:
             settings_dialog_show(hwnd, context->settings);
             return 0;
+        case TRAY_COMMAND_PLAY_TIME:
+            play_time_dialog_show(hwnd, context->play_time_tracker);
+            return 0;
         case TRAY_COMMAND_EXIT:
             DestroyWindow(hwnd);
             return 0;
@@ -138,6 +143,7 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
         }
     case WM_TIMER:
         if (w_param == TIMER_ID) {
+            play_time_tracker_update(context->play_time_tracker);
             clock_renderer_render(context->renderer, hwnd, context->settings);
         }
         return 0;
@@ -179,11 +185,13 @@ BOOL overlay_register_class(HINSTANCE instance)
     return RegisterClassExW(&window_class) != 0;
 }
 
-HWND overlay_create(HINSTANCE instance, AppSettings *settings)
+HWND overlay_create(HINSTANCE instance, AppSettings *settings,
+                    PlayTimeTracker *play_time_tracker)
 {
     OverlayContext *context = (OverlayContext *)calloc(1, sizeof(*context));
     if (context == NULL) return NULL;
     context->settings = settings;
+    context->play_time_tracker = play_time_tracker;
     context->renderer = clock_renderer_create();
     if (context->renderer == NULL) {
         free(context);

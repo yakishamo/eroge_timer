@@ -10,6 +10,8 @@ add_executable(eroge_timer WIN32
     src/clock_renderer_gdi.c
     src/main.c
     src/overlay.c
+    src/play_time_dialog.c
+    src/play_time_tracker.c
     src/settings_dialog.c
     src/settings_store.c
     src/tray.c
