@@ -246,6 +246,22 @@ static BOOL read_config(HWND hwnd, PlayTimeConfig *config)
     return TRUE;
 }
 
+static BOOL apply_dialog_config(HWND hwnd, PlayTimeDialogContext *context)
+{
+    if (!read_config(hwnd, &context->draft)) return FALSE;
+    if (context->target_registered) {
+        if (!play_time_tracker_register_target(
+                context->tracker, context->draft.executable_path)) {
+            MessageBoxW(hwnd, L"測定履歴を保存できませんでした。",
+                        L"Eroge Timer", MB_OK | MB_ICONWARNING);
+            return FALSE;
+        }
+        context->target_registered = FALSE;
+    }
+    play_time_tracker_set_config(context->tracker, &context->draft);
+    return TRUE;
+}
+
 static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
                                     WPARAM w_param, LPARAM l_param)
 {
@@ -271,10 +287,20 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
             ShowWindow(hwnd, SW_MINIMIZE);
             return 0;
         case CONTROL_RESET:
-            if (MessageBoxW(hwnd, L"累計プレイ時間をリセットしますか？",
+            if (MessageBoxW(
+                    hwnd,
+                    L"現在の測定結果を履歴に残し、"
+                    L"新しい測定レコードを開始しますか？",
                             L"Eroge Timer",
                             MB_YESNO | MB_ICONWARNING) == IDYES) {
-                play_time_tracker_reset(context->tracker);
+                BOOL pending_target = context->target_registered;
+                if (!apply_dialog_config(hwnd, context)) return 0;
+                if (!pending_target &&
+                    !play_time_tracker_reset(context->tracker)) {
+                    MessageBoxW(hwnd, L"新しい測定レコードを作成できませんでした。",
+                                L"Eroge Timer", MB_OK | MB_ICONERROR);
+                    return 0;
+                }
                 update_display(hwnd, context);
                 update_history(hwnd, context);
             }
@@ -304,17 +330,7 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
         }
         case IDOK:
             if (context->exporting) return 0;
-            if (read_config(hwnd, &context->draft)) {
-                if (context->target_registered &&
-                    !play_time_tracker_register_target(
-                        context->tracker,
-                        context->draft.executable_path)) {
-                    MessageBoxW(hwnd, L"測定履歴を保存できませんでした。",
-                                L"Eroge Timer", MB_OK | MB_ICONWARNING);
-                    return 0;
-                }
-                play_time_tracker_set_config(context->tracker,
-                                             &context->draft);
+            if (apply_dialog_config(hwnd, context)) {
                 DestroyWindow(hwnd);
             }
             return 0;

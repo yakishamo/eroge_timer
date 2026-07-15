@@ -442,15 +442,11 @@ BOOL play_time_tracker_register_target(PlayTimeTracker *tracker,
     return play_time_tracker_save(tracker);
 }
 
-void play_time_tracker_reset(PlayTimeTracker *tracker)
+BOOL play_time_tracker_reset(PlayTimeTracker *tracker)
 {
-    tracker->total_milliseconds = 0;
-    if (tracker->active_record_index != NO_ACTIVE_RECORD &&
-        tracker->active_record_index < tracker->record_count) {
-        tracker->records[tracker->active_record_index].total_milliseconds = 0;
-    }
-    tracker->dirty = TRUE;
-    play_time_tracker_save(tracker);
+    if (tracker->config.executable_path[0] == L'\0') return FALSE;
+    return play_time_tracker_register_target(
+        tracker, tracker->config.executable_path);
 }
 
 void play_time_tracker_shutdown(PlayTimeTracker *tracker)

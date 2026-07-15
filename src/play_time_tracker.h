@@ -43,7 +43,7 @@ void play_time_tracker_set_config(PlayTimeTracker *tracker,
                                   const PlayTimeConfig *config);
 BOOL play_time_tracker_register_target(PlayTimeTracker *tracker,
                                        const wchar_t *executable_path);
-void play_time_tracker_reset(PlayTimeTracker *tracker);
+BOOL play_time_tracker_reset(PlayTimeTracker *tracker);
 BOOL play_time_tracker_save(PlayTimeTracker *tracker);
 BOOL play_time_tracker_export_csv(const PlayTimeTracker *tracker,
                                   const wchar_t *path);
