@@ -18,13 +18,26 @@ typedef enum {
 } ClockPosition;
 
 typedef enum {
-    CLOCK_DISPLAY_TIME,
-    CLOCK_DISPLAY_TIME_SECONDS,
-    CLOCK_DISPLAY_DATE_TIME,
-    CLOCK_DISPLAY_DATE_TIME_YEAR,
-    CLOCK_DISPLAY_DATE_WEEKDAY_TIME,
-    CLOCK_DISPLAY_COUNT
-} ClockDisplay;
+    DATE_FORMAT_NONE,
+    DATE_FORMAT_MONTH_DAY,
+    DATE_FORMAT_YEAR_MONTH_DAY,
+    DATE_FORMAT_YEAR_MONTH_DAY_WEEKDAY,
+    DATE_FORMAT_COUNT
+} DateFormat;
+
+typedef enum {
+    TIME_FORMAT_HOUR_MINUTE,
+    TIME_FORMAT_HOUR_MINUTE_SECOND,
+    TIME_FORMAT_NONE,
+    TIME_FORMAT_COUNT
+} TimeFormat;
+
+typedef enum {
+    TEXT_ALIGNMENT_LEFT,
+    TEXT_ALIGNMENT_CENTER,
+    TEXT_ALIGNMENT_RIGHT,
+    TEXT_ALIGNMENT_COUNT
+} TextAlignment;
 
 typedef enum {
     RENDER_RESOLUTION_NATIVE,
@@ -42,7 +55,9 @@ typedef enum {
 typedef struct {
     ClockSize size;
     ClockPosition position;
-    ClockDisplay display;
+    DateFormat date_format;
+    TimeFormat time_format;
+    TextAlignment text_alignment;
     BOOL outline;
     BOOL shadow;
     RenderResolution render_resolution;

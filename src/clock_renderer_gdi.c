@@ -230,15 +230,15 @@ BOOL clock_renderer_measure(ClockRenderer *renderer,
 
     SYSTEMTIME time;
     wchar_t text[64];
-    SIZE text_size;
     GetLocalTime(&time);
     app_settings_format_clock(settings, &time, text, ARRAYSIZE(text));
     HGDIOBJ old_font = SelectObject(dc, font);
-    BOOL measured = GetTextExtentPoint32W(
-        dc, text, (int)wcslen(text), &text_size);
+    RECT text_rect = {0, 0, 0, 0};
+    BOOL measured = DrawTextW(
+        dc, text, -1, &text_rect, DT_CALCRECT | DT_CENTER | DT_NOPREFIX) != 0;
     if (measured) {
-        size->cx = text_size.cx + horizontal_padding;
-        size->cy = text_size.cy + vertical_padding;
+        size->cx = text_rect.right - text_rect.left + horizontal_padding;
+        size->cy = text_rect.bottom - text_rect.top + vertical_padding;
     }
     SelectObject(dc, old_font);
     DeleteObject(font);
@@ -311,11 +311,27 @@ BOOL clock_renderer_render(ClockRenderer *renderer, HWND hwnd,
     wchar_t text[64];
     GetLocalTime(&time);
     app_settings_format_clock(settings, &time, text, ARRAYSIZE(text));
-    RECT render_rect = {0, 0, render_width, render_height};
     SetBkMode(render_dc, TRANSPARENT);
     SetTextColor(render_dc, RGB(255, 255, 255));
+    RECT text_rect = {0, 0, 0, 0};
+    UINT alignment = DT_CENTER;
+    if (settings->text_alignment == TEXT_ALIGNMENT_LEFT) {
+        alignment = DT_LEFT;
+    } else if (settings->text_alignment == TEXT_ALIGNMENT_RIGHT) {
+        alignment = DT_RIGHT;
+    }
+    DrawTextW(render_dc, text, -1, &text_rect,
+              DT_CALCRECT | alignment | DT_NOPREFIX);
+    int text_height = text_rect.bottom - text_rect.top;
+    int text_top = (render_height - text_height) / 2;
+    int horizontal_inset = (int)(16.0f * render_scale + 0.5f);
+    if (horizontal_inset * 2 >= render_width) horizontal_inset = 0;
+    RECT render_rect = {
+        horizontal_inset, text_top,
+        render_width - horizontal_inset, text_top + text_height
+    };
     DrawTextW(render_dc, text, -1, &render_rect,
-              DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+              alignment | DT_NOPREFIX);
 
     size_t render_pixel_count = (size_t)render_width * render_height;
     text_mask = (BYTE *)malloc(render_pixel_count);

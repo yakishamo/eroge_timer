@@ -11,10 +11,12 @@
 #define CONTROL_POSITION_BOTTOM_LEFT 2013
 #define CONTROL_POSITION_BOTTOM_RIGHT 2014
 #define CONTROL_FONT 2021
-#define CONTROL_DISPLAY 2022
+#define CONTROL_DATE_FORMAT 2022
 #define CONTROL_OUTLINE 2023
 #define CONTROL_SHADOW 2024
 #define CONTROL_RENDER_RESOLUTION 2025
+#define CONTROL_TIME_FORMAT 2026
+#define CONTROL_TEXT_ALIGNMENT 2027
 
 static const wchar_t SETTINGS_CLASS_NAME[] = L"ErogeTimerSettings";
 static HWND settings_window;
@@ -72,19 +74,44 @@ static void fill_font_list(HWND combo, const AppSettings *settings)
     SendMessageW(combo, CB_SETCURSEL, (WPARAM)selected, 0);
 }
 
-static void fill_display_list(HWND combo, const AppSettings *settings)
+static void fill_date_format_list(HWND combo, const AppSettings *settings)
 {
     static const wchar_t *items[] = {
-        L"時:分（例 12:34）",
-        L"時:分:秒（例 12:34:56）",
-        L"月/日＋時刻（例 07/15 12:34）",
-        L"年/月/日＋時刻（例 2026/07/15 12:34）",
-        L"年/月/日＋曜日＋時刻（例 2026/07/15 (水) 12:34）"
+        L"表示しない",
+        L"月/日（例 07/15）",
+        L"年/月/日（例 2026/07/15）",
+        L"年/月/日＋曜日（例 2026/07/15 (水)）"
     };
-    for (int i = 0; i < CLOCK_DISPLAY_COUNT; ++i) {
+    for (int i = 0; i < DATE_FORMAT_COUNT; ++i) {
         SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)items[i]);
     }
-    SendMessageW(combo, CB_SETCURSEL, settings->display, 0);
+    SendMessageW(combo, CB_SETCURSEL, settings->date_format, 0);
+}
+
+static void fill_time_format_list(HWND combo, const AppSettings *settings)
+{
+    static const wchar_t *items[] = {
+        L"表示しない",
+        L"時:分（例 12:34）",
+        L"時:分:秒（例 12:34:56）"
+    };
+    for (int i = 0; i < TIME_FORMAT_COUNT; ++i) {
+        SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)items[i]);
+    }
+    int selected = settings->time_format == TIME_FORMAT_NONE
+        ? 0 : settings->time_format + 1;
+    SendMessageW(combo, CB_SETCURSEL, selected, 0);
+}
+
+static void fill_text_alignment_list(HWND combo, const AppSettings *settings)
+{
+    static const wchar_t *items[] = {
+        L"左揃え", L"中央揃え", L"右揃え"
+    };
+    for (int i = 0; i < TEXT_ALIGNMENT_COUNT; ++i) {
+        SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)items[i]);
+    }
+    SendMessageW(combo, CB_SETCURSEL, settings->text_alignment, 0);
 }
 
 static void fill_resolution_list(HWND combo, const AppSettings *settings)
@@ -135,40 +162,61 @@ static void create_settings_controls(HWND hwnd, const AppSettings *settings)
         fill_font_list(font_combo, settings);
     }
 
-    create_control(hwnd, L"BUTTON", L"表示内容", BS_GROUPBOX, 16, 312, 282, 70, 0);
-    HWND display_combo = create_control(
+    create_control(hwnd, L"BUTTON", L"表示内容", BS_GROUPBOX,
+                   16, 312, 282, 144, 0);
+    create_control(hwnd, L"STATIC", L"日付", SS_LEFT,
+                   32, 339, 42, 20, 0);
+    HWND date_combo = create_control(
         hwnd, L"COMBOBOX", L"",
         CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP,
-        32, 336, 250, 180, CONTROL_DISPLAY);
-    if (display_combo != NULL) {
-        fill_display_list(display_combo, settings);
+        78, 334, 204, 180, CONTROL_DATE_FORMAT);
+    if (date_combo != NULL) {
+        fill_date_format_list(date_combo, settings);
+    }
+    create_control(hwnd, L"STATIC", L"時刻", SS_LEFT,
+                   32, 375, 42, 20, 0);
+    HWND time_combo = create_control(
+        hwnd, L"COMBOBOX", L"",
+        CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP,
+        78, 370, 204, 120, CONTROL_TIME_FORMAT);
+    if (time_combo != NULL) {
+        fill_time_format_list(time_combo, settings);
+    }
+    create_control(hwnd, L"STATIC", L"文字揃え", SS_LEFT,
+                   32, 411, 60, 20, 0);
+    HWND alignment_combo = create_control(
+        hwnd, L"COMBOBOX", L"",
+        CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP,
+        96, 406, 186, 120, CONTROL_TEXT_ALIGNMENT);
+    if (alignment_combo != NULL) {
+        fill_text_alignment_list(alignment_combo, settings);
     }
 
     create_control(hwnd, L"BUTTON", L"文字効果", BS_GROUPBOX,
-                   16, 394, 282, 62, 0);
+                   16, 468, 282, 62, 0);
     create_control(hwnd, L"BUTTON", L"輪郭線", BS_AUTOCHECKBOX | WS_TABSTOP,
-                   32, 416, 100, 24, CONTROL_OUTLINE);
+                   32, 490, 100, 24, CONTROL_OUTLINE);
     create_control(hwnd, L"BUTTON", L"影", BS_AUTOCHECKBOX | WS_TABSTOP,
-                   166, 416, 100, 24, CONTROL_SHADOW);
+                   166, 490, 100, 24, CONTROL_SHADOW);
     CheckDlgButton(hwnd, CONTROL_OUTLINE,
                    settings->outline ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(hwnd, CONTROL_SHADOW,
                    settings->shadow ? BST_CHECKED : BST_UNCHECKED);
 
     create_control(hwnd, L"BUTTON", L"ゲーム解像度", BS_GROUPBOX,
-                   16, 468, 282, 70, 0);
+                   16, 542, 282, 70, 0);
     HWND resolution_combo = create_control(
         hwnd, L"COMBOBOX", L"",
         CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP,
-        32, 492, 250, 200, CONTROL_RENDER_RESOLUTION);
+        32, 566, 250, 200, CONTROL_RENDER_RESOLUTION);
     if (resolution_combo != NULL) {
         fill_resolution_list(resolution_combo, settings);
     }
 
     create_control(hwnd, L"BUTTON", L"OK", BS_DEFPUSHBUTTON,
-                   132, 554, 78, 28, IDOK);
+                   132, 628, 78, 28, IDOK);
     create_control(hwnd, L"BUTTON", L"キャンセル", BS_PUSHBUTTON,
-                   220, 554, 78, 28, IDCANCEL);
+                   220, 628, 78, 28, IDCANCEL);
 
     CheckRadioButton(hwnd, CONTROL_SIZE_SMALL, CONTROL_SIZE_LARGE,
                      CONTROL_SIZE_SMALL + settings->size);
@@ -204,10 +252,23 @@ static void read_settings(HWND hwnd, AppSettings *settings)
         settings->font[LF_FACESIZE - 1] = L'\0';
     }
 
-    HWND display_combo = GetDlgItem(hwnd, CONTROL_DISPLAY);
-    LRESULT selected_display = SendMessageW(display_combo, CB_GETCURSEL, 0, 0);
-    if (selected_display >= 0 && selected_display < CLOCK_DISPLAY_COUNT) {
-        settings->display = (ClockDisplay)selected_display;
+    HWND date_combo = GetDlgItem(hwnd, CONTROL_DATE_FORMAT);
+    LRESULT selected_date = SendMessageW(date_combo, CB_GETCURSEL, 0, 0);
+    if (selected_date >= 0 && selected_date < DATE_FORMAT_COUNT) {
+        settings->date_format = (DateFormat)selected_date;
+    }
+    HWND time_combo = GetDlgItem(hwnd, CONTROL_TIME_FORMAT);
+    LRESULT selected_time = SendMessageW(time_combo, CB_GETCURSEL, 0, 0);
+    if (selected_time >= 0 && selected_time < TIME_FORMAT_COUNT) {
+        settings->time_format = selected_time == 0
+            ? TIME_FORMAT_NONE : (TimeFormat)(selected_time - 1);
+    }
+    HWND alignment_combo = GetDlgItem(hwnd, CONTROL_TEXT_ALIGNMENT);
+    LRESULT selected_alignment = SendMessageW(
+        alignment_combo, CB_GETCURSEL, 0, 0);
+    if (selected_alignment >= 0 &&
+        selected_alignment < TEXT_ALIGNMENT_COUNT) {
+        settings->text_alignment = (TextAlignment)selected_alignment;
     }
     settings->outline = IsDlgButtonChecked(hwnd, CONTROL_OUTLINE) == BST_CHECKED;
     settings->shadow = IsDlgButtonChecked(hwnd, CONTROL_SHADOW) == BST_CHECKED;
@@ -236,7 +297,18 @@ static LRESULT CALLBACK settings_window_proc(HWND hwnd, UINT message,
     case WM_COMMAND:
         if (LOWORD(w_param) == IDOK) {
             HWND owner = GetWindow(hwnd, GW_OWNER);
-            read_settings(hwnd, settings);
+            AppSettings updated_settings = *settings;
+            read_settings(hwnd, &updated_settings);
+            if (updated_settings.date_format == DATE_FORMAT_NONE &&
+                updated_settings.time_format == TIME_FORMAT_NONE) {
+                MessageBoxW(
+                    hwnd,
+                    L"日付と時刻の両方を非表示にはできません。\n"
+                    L"どちらか一方を表示するように設定してください。",
+                    L"Eroge Timer", MB_OK | MB_ICONWARNING);
+                return 0;
+            }
+            *settings = updated_settings;
             overlay_apply_settings(owner, settings);
             if (!settings_store_save(settings)) {
                 MessageBoxW(hwnd, L"設定を保存できませんでした。",
@@ -286,7 +358,7 @@ void settings_dialog_show(HWND owner, AppSettings *settings)
     settings_window = CreateWindowExW(
         WS_EX_DLGMODALFRAME, SETTINGS_CLASS_NAME, L"Eroge Timer 設定",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, 330, 640,
+        CW_USEDEFAULT, CW_USEDEFAULT, 330, 716,
         owner, NULL, instance, settings);
 
     if (settings_window != NULL) {

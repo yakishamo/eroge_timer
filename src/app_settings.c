@@ -6,7 +6,9 @@ void app_settings_init(AppSettings *settings)
 {
     settings->size = CLOCK_SIZE_MEDIUM;
     settings->position = CLOCK_POSITION_TOP_LEFT;
-    settings->display = CLOCK_DISPLAY_TIME_SECONDS;
+    settings->date_format = DATE_FORMAT_NONE;
+    settings->time_format = TIME_FORMAT_HOUR_MINUTE_SECOND;
+    settings->text_alignment = TEXT_ALIGNMENT_CENTER;
     settings->outline = TRUE;
     settings->shadow = TRUE;
     settings->render_resolution = RENDER_RESOLUTION_NATIVE;
@@ -28,30 +30,43 @@ void app_settings_format_clock(const AppSettings *settings,
         L"日", L"月", L"火", L"水", L"木", L"金", L"土"
     };
 
-    switch (settings->display) {
-    case CLOCK_DISPLAY_TIME:
-        swprintf(buffer, buffer_length, L"%02u:%02u",
-                 time->wHour, time->wMinute);
+    wchar_t date[48] = L"";
+    wchar_t clock[16] = L"";
+    switch (settings->date_format) {
+    case DATE_FORMAT_MONTH_DAY:
+        swprintf(date, ARRAYSIZE(date), L"%02u/%02u",
+                 time->wMonth, time->wDay);
         break;
-    case CLOCK_DISPLAY_DATE_TIME:
-        swprintf(buffer, buffer_length, L"%02u/%02u %02u:%02u",
-                 time->wMonth, time->wDay, time->wHour, time->wMinute);
+    case DATE_FORMAT_YEAR_MONTH_DAY:
+        swprintf(date, ARRAYSIZE(date), L"%04u/%02u/%02u",
+                 time->wYear, time->wMonth, time->wDay);
         break;
-    case CLOCK_DISPLAY_DATE_TIME_YEAR:
-        swprintf(buffer, buffer_length, L"%04u/%02u/%02u %02u:%02u",
+    case DATE_FORMAT_YEAR_MONTH_DAY_WEEKDAY:
+        swprintf(date, ARRAYSIZE(date), L"%04u/%02u/%02u (%ls)",
                  time->wYear, time->wMonth, time->wDay,
-                 time->wHour, time->wMinute);
+                 weekdays[time->wDayOfWeek]);
         break;
-    case CLOCK_DISPLAY_DATE_WEEKDAY_TIME:
-        swprintf(buffer, buffer_length, L"%04u/%02u/%02u (%ls) %02u:%02u",
-                 time->wYear, time->wMonth, time->wDay,
-                 weekdays[time->wDayOfWeek], time->wHour, time->wMinute);
-        break;
-    case CLOCK_DISPLAY_TIME_SECONDS:
+    case DATE_FORMAT_NONE:
     default:
-        swprintf(buffer, buffer_length, L"%02u:%02u:%02u",
-                 time->wHour, time->wMinute, time->wSecond);
         break;
+    }
+
+    if (settings->time_format == TIME_FORMAT_HOUR_MINUTE) {
+        swprintf(clock, ARRAYSIZE(clock), L"%02u:%02u",
+                 time->wHour, time->wMinute);
+    } else if (settings->time_format == TIME_FORMAT_HOUR_MINUTE_SECOND) {
+        swprintf(clock, ARRAYSIZE(clock), L"%02u:%02u:%02u",
+                 time->wHour, time->wMinute, time->wSecond);
+    }
+
+    if (date[0] != L'\0' && clock[0] != L'\0') {
+        swprintf(buffer, buffer_length, L"%ls\n%ls", date, clock);
+    } else if (date[0] != L'\0') {
+        wcsncpy(buffer, date, buffer_length);
+        buffer[buffer_length - 1] = L'\0';
+    } else {
+        wcsncpy(buffer, clock, buffer_length);
+        buffer[buffer_length - 1] = L'\0';
     }
 }
 

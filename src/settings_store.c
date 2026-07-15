@@ -48,9 +48,35 @@ BOOL settings_store_load(AppSettings *settings)
     settings->position = (ClockPosition)read_bounded_int(
         path, L"Position", settings->position,
         CLOCK_POSITION_TOP_LEFT, CLOCK_POSITION_BOTTOM_RIGHT);
-    settings->display = (ClockDisplay)read_bounded_int(
-        path, L"Display", settings->display,
-        CLOCK_DISPLAY_TIME, CLOCK_DISPLAY_COUNT - 1);
+    int saved_date_format = GetPrivateProfileIntW(
+        L"Clock", L"DateFormat", -1, path);
+    if (saved_date_format >= DATE_FORMAT_NONE &&
+        saved_date_format < DATE_FORMAT_COUNT) {
+        settings->date_format = (DateFormat)saved_date_format;
+        settings->time_format = (TimeFormat)read_bounded_int(
+            path, L"TimeFormat", settings->time_format,
+            TIME_FORMAT_HOUR_MINUTE, TIME_FORMAT_COUNT - 1);
+    } else {
+        int legacy_display = read_bounded_int(path, L"Display", 1, 0, 4);
+        settings->date_format = DATE_FORMAT_NONE;
+        settings->time_format = TIME_FORMAT_HOUR_MINUTE;
+        if (legacy_display == 1) {
+            settings->time_format = TIME_FORMAT_HOUR_MINUTE_SECOND;
+        } else if (legacy_display == 2) {
+            settings->date_format = DATE_FORMAT_MONTH_DAY;
+        } else if (legacy_display == 3) {
+            settings->date_format = DATE_FORMAT_YEAR_MONTH_DAY;
+        } else if (legacy_display == 4) {
+            settings->date_format = DATE_FORMAT_YEAR_MONTH_DAY_WEEKDAY;
+        }
+    }
+    if (settings->date_format == DATE_FORMAT_NONE &&
+        settings->time_format == TIME_FORMAT_NONE) {
+        settings->time_format = TIME_FORMAT_HOUR_MINUTE;
+    }
+    settings->text_alignment = (TextAlignment)read_bounded_int(
+        path, L"TextAlignment", settings->text_alignment,
+        TEXT_ALIGNMENT_LEFT, TEXT_ALIGNMENT_COUNT - 1);
     settings->outline = read_bounded_int(
         path, L"Outline", settings->outline, FALSE, TRUE);
     settings->shadow = read_bounded_int(
@@ -84,7 +110,11 @@ BOOL settings_store_save(const AppSettings *settings)
     BOOL success = TRUE;
     success = write_int(path, L"Size", settings->size) && success;
     success = write_int(path, L"Position", settings->position) && success;
-    success = write_int(path, L"Display", settings->display) && success;
+    success = write_int(path, L"DateFormat", settings->date_format) && success;
+    success = write_int(path, L"TimeFormat", settings->time_format) && success;
+    success = write_int(path, L"TextAlignment", settings->text_alignment) && success;
+    success = WritePrivateProfileStringW(
+        L"Clock", L"Display", NULL, path) && success;
     success = write_int(path, L"Outline", settings->outline) && success;
     success = write_int(path, L"Shadow", settings->shadow) && success;
     success = write_int(path, L"RenderResolution",
