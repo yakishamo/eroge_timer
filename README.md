@@ -87,7 +87,7 @@ cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target installer
 ```
 
-`build/eroge_timer-v1.1.0-setup.exe`が生成されます。インストーラはユーザー単位でインストールされ、デスクトップショートカットとWindowsサインイン時の自動起動を任意で選択できます。アンインストールしても、`%APPDATA%\ErogeTimer`の設定と測定履歴は保持されます。
+Inno Setupが検出されている環境では、通常の`cmake --build build`でも毎回インストーラを生成します。`build/eroge_timer-v1.1.0-setup.exe`が生成されます。インストーラはユーザー単位でインストールされ、デスクトップショートカットとWindowsサインイン時の自動起動を任意で選択できます。アンインストールしても、`%APPDATA%\ErogeTimer`の設定と測定履歴は保持されます。
 
 ## ライセンス
 

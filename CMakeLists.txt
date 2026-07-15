@@ -45,13 +45,13 @@ find_program(INNO_SETUP_COMPILER
 )
 
 if(INNO_SETUP_COMPILER)
-    add_custom_target(installer
+    add_custom_target(installer ALL
         COMMAND "${INNO_SETUP_COMPILER}"
             "/DAppVersion=${PROJECT_VERSION}"
             "/DBuildDir=${CMAKE_BINARY_DIR}"
             "${CMAKE_SOURCE_DIR}/installer/eroge_timer.iss"
         DEPENDS eroge_timer
-        COMMENT "Building Eroge Timer installer"
+        COMMENT "Building Eroge Timer installer for this build"
         VERBATIM
     )
 else()
