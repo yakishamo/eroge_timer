@@ -10,5 +10,7 @@ BOOL overlay_register_class(HINSTANCE instance);
 HWND overlay_create(HINSTANCE instance, AppSettings *settings,
                     PlayTimeTracker *play_time_tracker);
 void overlay_apply_settings(HWND hwnd, const AppSettings *settings);
+void overlay_suspend_mouse_hook(void);
+void overlay_resume_mouse_hook(void);
 
 #endif

@@ -24,6 +24,25 @@ static UINT taskbar_created_message;
 static HWND overlay_window;
 static HHOOK mouse_hook;
 static BOOL suppress_right_button_until_up;
+static LRESULT CALLBACK mouse_hook_proc(int code, WPARAM w_param,
+                                        LPARAM l_param);
+
+void overlay_suspend_mouse_hook(void)
+{
+    if (mouse_hook != NULL) {
+        UnhookWindowsHookEx(mouse_hook);
+        mouse_hook = NULL;
+    }
+    suppress_right_button_until_up = FALSE;
+}
+
+void overlay_resume_mouse_hook(void)
+{
+    if (mouse_hook == NULL && overlay_window != NULL) {
+        mouse_hook = SetWindowsHookExW(
+            WH_MOUSE_LL, mouse_hook_proc, NULL, 0);
+    }
+}
 
 static OverlayContext *get_context(HWND hwnd)
 {

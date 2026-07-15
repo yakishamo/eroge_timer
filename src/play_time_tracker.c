@@ -180,17 +180,19 @@ static wchar_t *quote_csv_field(const wchar_t *text)
 BOOL play_time_tracker_export_csv(const PlayTimeTracker *tracker,
                                   const wchar_t *path)
 {
-    HANDLE file = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
-                              FILE_ATTRIBUTE_NORMAL, NULL);
-    if (file == INVALID_HANDLE_VALUE) return FALSE;
-    const BYTE bom[] = {0xef, 0xbb, 0xbf};
-    DWORD written = 0;
-    BOOL success = WriteFile(file, bom, sizeof(bom), &written, NULL) &&
-                   written == sizeof(bom) &&
-                   write_utf8(file,
-                       L"登録日時,実行ファイル,実行ファイルのパス,"
-                       L"プレイ時間（秒）,プレイ時間（時:分:秒）\r\n");
-    for (size_t i = 0; success && i < tracker->record_count; ++i) {
+    static const wchar_t header[] =
+        L"登録日時,実行ファイル,実行ファイルのパス,"
+        L"プレイ時間（秒）,プレイ時間（時:分:秒）\r\n";
+    size_t buffer_length = ARRAYSIZE(header);
+    for (size_t i = 0; i < tracker->record_count; ++i) {
+        buffer_length += wcslen(tracker->records[i].executable_path) * 4 + 128;
+    }
+    wchar_t *csv = malloc(buffer_length * sizeof(*csv));
+    if (csv == NULL) return FALSE;
+    wcscpy(csv, header);
+    size_t used = wcslen(csv);
+    BOOL success = TRUE;
+    for (size_t i = 0; i < tracker->record_count; ++i) {
         const PlayTimeRecord *record = &tracker->records[i];
         ULARGE_INTEGER timestamp;
         timestamp.QuadPart = record->registered_file_time;
@@ -210,31 +212,40 @@ BOOL play_time_tracker_export_csv(const PlayTimeTracker *tracker,
             success = FALSE;
             break;
         }
-        size_t row_length = wcslen(quoted_name) + wcslen(quoted_path) + 96;
-        wchar_t *row = malloc(row_length * sizeof(*row));
-        if (row == NULL) {
-            free(quoted_name);
-            free(quoted_path);
+        ULONGLONG total_seconds = record->total_milliseconds / 1000;
+        int row_length = swprintf(
+            csv + used, buffer_length - used,
+            L"%04u/%02u/%02u %02u:%02u:%02u,%ls,%ls,%llu,"
+            L"%llu:%02llu:%02llu\r\n",
+            registered.wYear, registered.wMonth, registered.wDay,
+            registered.wHour, registered.wMinute, registered.wSecond,
+            quoted_name, quoted_path,
+            (unsigned long long)total_seconds,
+            (unsigned long long)(total_seconds / 3600),
+            (unsigned long long)((total_seconds / 60) % 60),
+            (unsigned long long)(total_seconds % 60));
+        free(quoted_name);
+        free(quoted_path);
+        if (row_length < 0 || (size_t)row_length >= buffer_length - used) {
             success = FALSE;
             break;
         }
-        ULONGLONG total_seconds = record->total_milliseconds / 1000;
-        swprintf(row, row_length,
-                 L"%04u/%02u/%02u %02u:%02u:%02u,%ls,%ls,%llu,"
-                 L"%llu:%02llu:%02llu\r\n",
-                 registered.wYear, registered.wMonth, registered.wDay,
-                 registered.wHour, registered.wMinute, registered.wSecond,
-                 quoted_name, quoted_path,
-                 (unsigned long long)total_seconds,
-                 (unsigned long long)(total_seconds / 3600),
-                 (unsigned long long)((total_seconds / 60) % 60),
-                 (unsigned long long)(total_seconds % 60));
-        success = write_utf8(file, row);
-        free(row);
-        free(quoted_name);
-        free(quoted_path);
+        used += (size_t)row_length;
     }
-    if (!CloseHandle(file)) success = FALSE;
+    HANDLE file = INVALID_HANDLE_VALUE;
+    if (success) {
+        file = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                           FILE_ATTRIBUTE_NORMAL, NULL);
+        success = file != INVALID_HANDLE_VALUE;
+    }
+    if (success) {
+        const BYTE bom[] = {0xef, 0xbb, 0xbf};
+        DWORD written = 0;
+        success = WriteFile(file, bom, sizeof(bom), &written, NULL) &&
+                  written == sizeof(bom) && write_utf8(file, csv);
+    }
+    free(csv);
+    if (file != INVALID_HANDLE_VALUE && !CloseHandle(file)) success = FALSE;
     if (!success) DeleteFileW(path);
     return success;
 }

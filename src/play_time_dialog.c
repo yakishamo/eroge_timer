@@ -1,5 +1,7 @@
 #include "play_time_dialog.h"
 
+#include "overlay.h"
+
 #include <commdlg.h>
 #include <stdlib.h>
 #include <wchar.h>
@@ -15,15 +17,66 @@
 #define CONTROL_EXPORT 3009
 #define CAPTURE_TIMER_ID 1
 #define REFRESH_TIMER_ID 2
+#define EXPORT_COMPLETE_MESSAGE (WM_APP + 20)
+
+typedef struct {
+    HWND owner;
+    wchar_t path[MAX_PATH];
+    PlayTimeTracker snapshot;
+} ExportTask;
 
 typedef struct {
     PlayTimeTracker *tracker;
     PlayTimeConfig draft;
     BOOL target_registered;
+    BOOL exporting;
 } PlayTimeDialogContext;
 
 static const wchar_t CLASS_NAME[] = L"ErogeTimerPlayTime";
 static HWND dialog_window;
+
+static DWORD WINAPI export_thread_proc(void *parameter)
+{
+    ExportTask *task = parameter;
+    BOOL success = play_time_tracker_export_csv(&task->snapshot, task->path);
+    if (!PostMessageW(task->owner, EXPORT_COMPLETE_MESSAGE,
+                      (WPARAM)success, (LPARAM)task)) {
+        free(task->snapshot.records);
+        free(task);
+    }
+    return 0;
+}
+
+static BOOL start_export(HWND hwnd, PlayTimeDialogContext *context,
+                         const wchar_t *path)
+{
+    ExportTask *task = calloc(1, sizeof(*task));
+    if (task == NULL) return FALSE;
+    task->owner = hwnd;
+    lstrcpynW(task->path, path, ARRAYSIZE(task->path));
+    task->snapshot.record_count = context->tracker->record_count;
+    if (task->snapshot.record_count > 0) {
+        size_t size = task->snapshot.record_count * sizeof(PlayTimeRecord);
+        task->snapshot.records = malloc(size);
+        if (task->snapshot.records == NULL) {
+            free(task);
+            return FALSE;
+        }
+        CopyMemory(task->snapshot.records, context->tracker->records, size);
+    }
+    HANDLE thread = CreateThread(NULL, 0, export_thread_proc, task, 0, NULL);
+    if (thread == NULL) {
+        free(task->snapshot.records);
+        free(task);
+        return FALSE;
+    }
+    CloseHandle(thread);
+    context->exporting = TRUE;
+    HWND button = GetDlgItem(hwnd, CONTROL_EXPORT);
+    EnableWindow(button, FALSE);
+    SetWindowTextW(button, L"書き出し中...");
+    return TRUE;
+}
 
 static void set_control_font(HWND control)
 {
@@ -227,11 +280,11 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
             dialog.lpstrDefExt = L"csv";
             dialog.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST |
                            OFN_NOCHANGEDIR;
-            if (GetSaveFileNameW(&dialog)) {
-                if (play_time_tracker_export_csv(context->tracker, path)) {
-                    MessageBoxW(hwnd, L"測定履歴を書き出しました。",
-                                L"Eroge Timer", MB_OK | MB_ICONINFORMATION);
-                } else {
+            overlay_suspend_mouse_hook();
+            BOOL selected = GetSaveFileNameW(&dialog);
+            overlay_resume_mouse_hook();
+            if (selected) {
+                if (!start_export(hwnd, context, path)) {
                     MessageBoxW(hwnd, L"測定履歴を書き出せませんでした。",
                                 L"Eroge Timer", MB_OK | MB_ICONERROR);
                 }
@@ -239,6 +292,7 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
             return 0;
         }
         case IDOK:
+            if (context->exporting) return 0;
             if (read_config(hwnd, &context->draft)) {
                 if (context->target_registered &&
                     !play_time_tracker_register_target(
@@ -254,12 +308,28 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
             }
             return 0;
         case IDCANCEL:
+            if (context->exporting) return 0;
             DestroyWindow(hwnd);
             return 0;
         default:
             break;
         }
         break;
+    case EXPORT_COMPLETE_MESSAGE: {
+        ExportTask *task = (ExportTask *)l_param;
+        context->exporting = FALSE;
+        HWND button = GetDlgItem(hwnd, CONTROL_EXPORT);
+        EnableWindow(button, TRUE);
+        SetWindowTextW(button, L"CSVに書き出す...");
+        MessageBoxW(hwnd,
+                    w_param ? L"測定履歴を書き出しました。"
+                            : L"測定履歴を書き出せませんでした。",
+                    L"Eroge Timer",
+                    MB_OK | (w_param ? MB_ICONINFORMATION : MB_ICONERROR));
+        free(task->snapshot.records);
+        free(task);
+        return 0;
+    }
     case WM_TIMER:
         if (w_param == CAPTURE_TIMER_ID) {
             KillTimer(hwnd, CAPTURE_TIMER_ID);
@@ -294,6 +364,11 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
         }
         break;
     case WM_CLOSE:
+        if (context->exporting) {
+            MessageBoxW(hwnd, L"CSVの書き出しが完了するまでお待ちください。",
+                        L"Eroge Timer", MB_OK | MB_ICONINFORMATION);
+            return 0;
+        }
         DestroyWindow(hwnd);
         return 0;
     case WM_DESTROY:
