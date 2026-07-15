@@ -34,7 +34,7 @@ else()
     target_link_options(eroge_timer PRIVATE -municode)
 endif()
 
-target_link_libraries(eroge_timer PRIVATE user32 gdi32 shell32)
+target_link_libraries(eroge_timer PRIVATE user32 gdi32 shell32 comdlg32)
 
 install(TARGETS eroge_timer RUNTIME DESTINATION .)
 install(FILES

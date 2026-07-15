@@ -1,5 +1,6 @@
 #include "play_time_dialog.h"
 
+#include <commdlg.h>
 #include <stdlib.h>
 #include <wchar.h>
 
@@ -11,6 +12,7 @@
 #define CONTROL_STATE 3006
 #define CONTROL_RESET 3007
 #define CONTROL_HISTORY 3008
+#define CONTROL_EXPORT 3009
 #define CAPTURE_TIMER_ID 1
 #define REFRESH_TIMER_ID 2
 
@@ -149,6 +151,9 @@ static void create_controls(HWND hwnd, PlayTimeDialogContext *context)
                    418, 528, 78, 28, IDOK);
     create_control(hwnd, L"BUTTON", L"キャンセル", BS_PUSHBUTTON,
                    506, 528, 78, 28, IDCANCEL);
+    create_control(hwnd, L"BUTTON", L"CSVに書き出す...",
+                   BS_PUSHBUTTON | WS_TABSTOP,
+                   30, 528, 140, 28, CONTROL_EXPORT);
     update_display(hwnd, context);
     update_history(hwnd, context);
     SetTimer(hwnd, REFRESH_TIMER_ID, 1000, NULL);
@@ -210,6 +215,29 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT message,
                 update_history(hwnd, context);
             }
             return 0;
+        case CONTROL_EXPORT: {
+            wchar_t path[MAX_PATH] = L"play_time_history.csv";
+            OPENFILENAMEW dialog = {0};
+            dialog.lStructSize = sizeof(dialog);
+            dialog.hwndOwner = hwnd;
+            dialog.lpstrFilter = L"CSVファイル (*.csv)\0*.csv\0"
+                                 L"すべてのファイル (*.*)\0*.*\0\0";
+            dialog.lpstrFile = path;
+            dialog.nMaxFile = ARRAYSIZE(path);
+            dialog.lpstrDefExt = L"csv";
+            dialog.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST |
+                           OFN_NOCHANGEDIR;
+            if (GetSaveFileNameW(&dialog)) {
+                if (play_time_tracker_export_csv(context->tracker, path)) {
+                    MessageBoxW(hwnd, L"測定履歴を書き出しました。",
+                                L"Eroge Timer", MB_OK | MB_ICONINFORMATION);
+                } else {
+                    MessageBoxW(hwnd, L"測定履歴を書き出せませんでした。",
+                                L"Eroge Timer", MB_OK | MB_ICONERROR);
+                }
+            }
+            return 0;
+        }
         case IDOK:
             if (read_config(hwnd, &context->draft)) {
                 if (context->target_registered &&

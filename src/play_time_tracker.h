@@ -44,6 +44,8 @@ BOOL play_time_tracker_register_target(PlayTimeTracker *tracker,
                                        const wchar_t *executable_path);
 void play_time_tracker_reset(PlayTimeTracker *tracker);
 BOOL play_time_tracker_save(PlayTimeTracker *tracker);
+BOOL play_time_tracker_export_csv(const PlayTimeTracker *tracker,
+                                  const wchar_t *path);
 BOOL play_time_get_foreground_executable(wchar_t *path, DWORD path_length);
 const wchar_t *play_time_state_text(PlayTimeState state);
 const PlayTimeRecord *play_time_tracker_records(

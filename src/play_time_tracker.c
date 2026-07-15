@@ -144,6 +144,101 @@ static BOOL save_history(const PlayTimeTracker *tracker)
     return success;
 }
 
+static BOOL write_utf8(HANDLE file, const wchar_t *text)
+{
+    int byte_count = WideCharToMultiByte(
+        CP_UTF8, 0, text, -1, NULL, 0, NULL, NULL);
+    if (byte_count <= 1) return byte_count == 1;
+    char *bytes = malloc((size_t)byte_count);
+    if (bytes == NULL) return FALSE;
+    WideCharToMultiByte(CP_UTF8, 0, text, -1,
+                        bytes, byte_count, NULL, NULL);
+    DWORD written = 0;
+    BOOL success = WriteFile(file, bytes, (DWORD)(byte_count - 1),
+                             &written, NULL) &&
+                   written == (DWORD)(byte_count - 1);
+    free(bytes);
+    return success;
+}
+
+static wchar_t *quote_csv_field(const wchar_t *text)
+{
+    size_t length = wcslen(text);
+    wchar_t *quoted = malloc((length * 2 + 3) * sizeof(*quoted));
+    if (quoted == NULL) return NULL;
+    wchar_t *output = quoted;
+    *output++ = L'"';
+    for (const wchar_t *input = text; *input != L'\0'; ++input) {
+        if (*input == L'"') *output++ = L'"';
+        *output++ = *input;
+    }
+    *output++ = L'"';
+    *output = L'\0';
+    return quoted;
+}
+
+BOOL play_time_tracker_export_csv(const PlayTimeTracker *tracker,
+                                  const wchar_t *path)
+{
+    HANDLE file = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                              FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) return FALSE;
+    const BYTE bom[] = {0xef, 0xbb, 0xbf};
+    DWORD written = 0;
+    BOOL success = WriteFile(file, bom, sizeof(bom), &written, NULL) &&
+                   written == sizeof(bom) &&
+                   write_utf8(file,
+                       L"登録日時,実行ファイル,実行ファイルのパス,"
+                       L"プレイ時間（秒）,プレイ時間（時:分:秒）\r\n");
+    for (size_t i = 0; success && i < tracker->record_count; ++i) {
+        const PlayTimeRecord *record = &tracker->records[i];
+        ULARGE_INTEGER timestamp;
+        timestamp.QuadPart = record->registered_file_time;
+        FILETIME utc = {timestamp.LowPart, timestamp.HighPart};
+        FILETIME local;
+        SYSTEMTIME registered = {0};
+        FileTimeToLocalFileTime(&utc, &local);
+        FileTimeToSystemTime(&local, &registered);
+        const wchar_t *file_name = wcsrchr(record->executable_path, L'\\');
+        file_name = file_name != NULL ? file_name + 1
+                                      : record->executable_path;
+        wchar_t *quoted_name = quote_csv_field(file_name);
+        wchar_t *quoted_path = quote_csv_field(record->executable_path);
+        if (quoted_name == NULL || quoted_path == NULL) {
+            free(quoted_name);
+            free(quoted_path);
+            success = FALSE;
+            break;
+        }
+        size_t row_length = wcslen(quoted_name) + wcslen(quoted_path) + 96;
+        wchar_t *row = malloc(row_length * sizeof(*row));
+        if (row == NULL) {
+            free(quoted_name);
+            free(quoted_path);
+            success = FALSE;
+            break;
+        }
+        ULONGLONG total_seconds = record->total_milliseconds / 1000;
+        swprintf(row, row_length,
+                 L"%04u/%02u/%02u %02u:%02u:%02u,%ls,%ls,%llu,"
+                 L"%llu:%02llu:%02llu\r\n",
+                 registered.wYear, registered.wMonth, registered.wDay,
+                 registered.wHour, registered.wMinute, registered.wSecond,
+                 quoted_name, quoted_path,
+                 (unsigned long long)total_seconds,
+                 (unsigned long long)(total_seconds / 3600),
+                 (unsigned long long)((total_seconds / 60) % 60),
+                 (unsigned long long)(total_seconds % 60));
+        success = write_utf8(file, row);
+        free(row);
+        free(quoted_name);
+        free(quoted_path);
+    }
+    if (!CloseHandle(file)) success = FALSE;
+    if (!success) DeleteFileW(path);
+    return success;
+}
+
 BOOL play_time_get_foreground_executable(wchar_t *path, DWORD path_length)
 {
     HWND foreground = GetForegroundWindow();
