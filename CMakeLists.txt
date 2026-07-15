@@ -36,6 +36,29 @@ endif()
 
 target_link_libraries(eroge_timer PRIVATE user32 gdi32 shell32 comdlg32)
 
+find_program(INNO_SETUP_COMPILER
+    NAMES ISCC.exe ISCC
+    PATHS
+        "$ENV{LOCALAPPDATA}/Programs/Inno Setup 6"
+        "C:/Program Files (x86)/Inno Setup 6"
+        "C:/Program Files/Inno Setup 6"
+)
+
+if(INNO_SETUP_COMPILER)
+    add_custom_target(installer
+        COMMAND "${INNO_SETUP_COMPILER}"
+            "/DAppVersion=${PROJECT_VERSION}"
+            "/DBuildDir=${CMAKE_BINARY_DIR}"
+            "${CMAKE_SOURCE_DIR}/installer/eroge_timer.iss"
+        DEPENDS eroge_timer
+        COMMENT "Building Eroge Timer installer"
+        VERBATIM
+    )
+else()
+    message(STATUS
+        "Inno Setup 6 was not found; install it to enable the installer target")
+endif()
+
 install(TARGETS eroge_timer RUNTIME DESTINATION .)
 install(FILES
     CHANGELOG.md
